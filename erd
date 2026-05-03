@@ -1,0 +1,9 @@
+digraph {
+	User [label="User
+- id
+- name"]
+	Order [label="Order
+- id
+- user_id"]
+	User -> Order [label=places]
+}

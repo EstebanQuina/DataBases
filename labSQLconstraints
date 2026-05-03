@@ -1,0 +1,107 @@
+CREATE TABLE proglang_tblcopy (id INTEGER NOT NULL, language  VARCHAR(20) NOT NULL, author VARCHAR(25) NOT NULL, year INTEGER NOT NULL, standard VARCHAR(10) NULL); 
+
+INSERT INTO proglang_tblcopy VALUES (1, 'Fortran', 'Backus', null, 'ANSI');
+
+INSERT INTO proglang_tblcopy (id, language, author, year, standard) VALUES (1, 'Prolog', 'Colmerauer', 1972, 'ISO');
+
+select * from proglang_tblcopy;
+
+INSERT INTO proglang_tblcopy (id, language, author, year) VALUES (2, 'Perl', 'Wall', 1987);
+
+INSERT INTO proglang_tblcopy (id, year, standard, language, author) VALUES (3, 1964, 'ANSI', 'APL', 'Iverson');
+
+CREATE TABLE proglang_contraints(id INTEGER NOT NULL PRIMARY KEY, language VARCHAR(20) NOT NULL, author VARCHAR(25) NOT NULL, year INTEGER NOT NULL CHECK (year > 1950), standard VARCHAR(10) NULL);
+
+INSERT INTO proglang_contraints (id, language, author, year) VALUES (1, 'Short Code', 'Mauchly', 1949);
+
+CREATE TABLE proglang_tbluk (id INTEGER NOT NULL PRIMARY KEY, language  VARCHAR(20) NOT NULL UNIQUE, author VARCHAR(25) NOT NULL, year INTEGER NOT NULL, standard VARCHAR(10) NULL); 
+
+INSERT INTO proglang_tbluk (id, language, author, year, standard) VALUES (1, 'Prolog', 'Colmerauer', 1972, 'ISO');
+
+INSERT INTO proglang_tbluk (id, language, author, year, standard) VALUES (2, 'Prolog', 'Colmerauer', 1972, 'ISO');
+
+CREATE TABLE Students (StudentID INTEGER PRIMARY KEY, FirstName VARCHAR(50) NOT NULL, LastName VARCHAR(50) NOT NULL, Age INTEGER NOT NULL CHECK (Age >= 18 AND Age <= 30), Email VARCHAR(100) UNIQUE);
+
+INSERT INTO Students (StudentID, FirstName, LastName, Age, Email) VALUES (1, 'John', 'Doe', 20, 'john.doe@university.edu');
+
+.mode column
+.headers on
+SELECT * FROM Students;
+
+--Check age constraint violation
+INSERT INTO Students (StudentID, FirstName, LastName, Age, Email) VALUES (2, 'Jane', 'Smith', 17, 'jane.smith@university.edu');
+
+-- Exercise: check contraint to verify that email structure is well formed
+CREATE TABLE Employees (EmployeeID INTEGER PRIMARY KEY, FirstName VARCHAR(50) NOT NULL, LastName VARCHAR(50) NOT NULL, Email VARCHAR(100) UNIQUE CHECK (Email LIKE '%@%.%'));
+INSERT INTO Employees (EmployeeID, FirstName, LastName, Email) VALUES (1, 'Alice', 'Johnson', 'alice.johnson@company.com'); 
+INSERT INTO Employees (EmployeeID, FirstName, LastName, Email) VALUES (2, 'Bob', 'Smith', 'bob.smithcompany.com');
+INSERT INTO Employees (EmployeeID, FirstName, LastName, Email) VALUES (3, 'Charlie', 'Brown', 'charlie.brown@company');
+
+-- Exercise: check ID length is 10 digits
+CREATE TABLE Employees2 (EmployeeID INTEGER PRIMARY KEY CHECK (length(EmployeeID) = 10), FirstName VARCHAR(50) NOT NULL, LastName VARCHAR(50) NOT NULL, Email VARCHAR(100) UNIQUE CHECK (Email LIKE '%@%.%'));
+INSERT INTO Employees2 (EmployeeID, FirstName, LastName, Email) VALUES (1234567890, 'Alice', 'Johnson', 'alice.johnson@company.com');
+INSERT INTO Employees2 (EmployeeID, FirstName, LastName, Email) VALUES (12345, 'Bob', 'Smith', 'bob.smith@company.com');
+
+select * from Employees2;
+
+
+-- Exercise: reference integrity
+CREATE TABLE BOOK (BookID VARCHAR(10) NOT NULL PRIMARY KEY, Title VARCHAR(100) NOT NULL, Author VARCHAR(100) NOT NULL, PublicationYear INTEGER NOT NULL);
+INSERT INTO BOOK (BookID, Title, Author, PublicationYear) VALUES ('B001', 'Database Systems', 'C.J. Date', 2004);
+INSERT INTO BOOK (BookID, Title, Author, PublicationYear) VALUES ('B002', 'Introduction to Algorithms', 'Cormen et al.', 2009);
+INSERT INTO BOOK (BookID, Title, Author, PublicationYear) VALUES ('B003', 'The C Programming Language', 'Kernighan and Ritchie', 1988);
+INSERT INTO BOOK (BookID, Title, Author, PublicationYear) VALUES ('B004', 'Clean Code', 'Robert C. Martin', 2008);
+
+select * from BOOK;
+
+CREATE TABLE BORROW (BorrowID VARCHAR(10) NOT NULL PRIMARY KEY, BorrowerFirstName VARCHAR(100) NOT NULL, BorrowerLastName VARCHAR(100) NOT NULL, BorrowDate DATE NOT NULL);
+INSERT INTO BORROW (BorrowID, BorrowerFirstName, BorrowerLastName, BorrowDate) VALUES ('BR001', 'Alice', 'Johnson', '2024-02-02');
+INSERT INTO BORROW (BorrowID, BorrowerFirstName, BorrowerLastName, BorrowDate) VALUES ('BR002', 'Bob', 'Smith', '2024-02-03');
+INSERT INTO BORROW (BorrowID, BorrowerFirstName, BorrowerLastName, BorrowDate) VALUES ('BR003', 'Charlie', 'Brown', '2024-02-04');
+INSERT INTO BORROW (BorrowID, BorrowerFirstName, BorrowerLastName, BorrowDate) VALUES ('BR004', 'David', 'Wilson', '2024-02-05');
+
+select * from BORROW;
+
+DROP TABLE BORROW;
+PRAGMA FOREIGN_KEYS = ON;   
+-- Recreate BORROW table with foreign key constraint
+CREATE TABLE BORROW (BorrowID VARCHAR(10) NOT NULL PRIMARY KEY, BorrowerFirstName VARCHAR(100), BorrowerLastName VARCHAR(100), BorrowDate DATE, BookIDFK VARCHAR(10) NOT NULL, FOREIGN KEY (BookIDFK) REFERENCES BOOK(BookID));
+INSERT INTO BORROW (BorrowID, BorrowerFirstName, BorrowerLastName, BorrowDate, BookIDFK) VALUES ('BR001', 'Alice', 'Johnson', '2024-02-02', 'B001');
+INSERT INTO BORROW (BorrowID, BorrowerFirstName, BorrowerLastName, BorrowDate, BookIDFK) VALUES ('BR002', 'Bob', 'Smith', '2024-02-03', 'B002');
+INSERT INTO BORROW (BorrowID, BorrowerFirstName, BorrowerLastName, BorrowDate, BookIDFK) VALUES ('BR003', 'Charlie', 'Brown', '2024-02-04', 'B003');
+INSERT INTO BORROW (BorrowID, BorrowerFirstName, BorrowerLastName, BorrowDate, BookIDFK) VALUES ('BR004', 'David', 'Wilson', '2024-02-05', 'B004');
+
+select * from BORROW;
+
+
+
+
+-- Exercise: Create a table Students(StudentID INTEGER PRIMARY KEY, FirstName VARCHAR(50) NOT NULL, LastName VARCHAR(50) NOT NULL, Email VARCHAR(100) UNIQUE);
+CREATE TABLE Students2 (StudentID INTEGER PRIMARY KEY, FirstName VARCHAR(50) NOT NULL, LastName VARCHAR(50) NOT NULL, Email VARCHAR(100) UNIQUE);
+INSERT INTO Students2 (StudentID, FirstName, LastName, Email) VALUES (1, 'John', 'Doe', 'john.doe@university.edu');
+INSERT INTO Students2 (StudentID, FirstName, LastName, Email) VALUES (2, 'Jane', 'Smith', 'jane.smith@university.edu');
+INSERT INTO Students2 (StudentID, FirstName, LastName, Email) VALUES (3, 'Alice', 'Johnson', 'alice.johnson@university.edu');
+
+-- Create a table courses(CourseID INTEGER PRIMARY KEY, CourseName VARCHAR(100) NOT NULL, InstructorName VARCHAR(100) NOT NULL );
+CREATE TABLE courses (CourseID INTEGER PRIMARY KEY, CourseName VARCHAR(100) NOT NULL, InstructorName VARCHAR(100) NOT NULL);
+INSERT INTO courses (CourseID, CourseName, InstructorName) VALUES (1, 'Database Systems', 'Dr. Smith');
+INSERT INTO courses (CourseID, CourseName, InstructorName) VALUES (2, 'Introduction to Algorithms', 'Dr. Johnson');
+INSERT INTO courses (CourseID, CourseName, InstructorName) VALUES (3, 'Operating Systems', 'Dr. Lee');
+
+-- Create a table enrollments(StudentIDFK, CourseIDFK, EnrollmentDate DATE);
+CREATE TABLE enrollments (StudentIDFK INTEGER, CourseIDFK INTEGER, EnrollmentDate DATE, PRIMARY KEY (StudentIDFK, CourseIDFK), FOREIGN KEY (StudentIDFK) REFERENCES Students2(StudentID), FOREIGN KEY (CourseIDFK) REFERENCES courses(CourseID));
+INSERT INTO enrollments (StudentIDFK, CourseIDFK, EnrollmentDate) VALUES (1, 1, '2024-01-15');
+INSERT INTO enrollments (StudentIDFK, CourseIDFK, EnrollmentDate) VALUES (1, 2, '2024-01-16');
+INSERT INTO enrollments (StudentIDFK, CourseIDFK, EnrollmentDate) VALUES (2, 1, '2024-01-17');
+INSERT INTO enrollments (StudentIDFK, CourseIDFK, EnrollmentDate) VALUES (3, 3, '2024-01-18');
+
+SELECT * FROM enrollments;
+--Insert one more student and one more course, and enroll the new student in the new course
+INSERT INTO Students2 (StudentID, FirstName, LastName, Email) VALUES (4, 'Bob', 'Smith', 'bob.smith@university.edu');
+INSERT INTO courses (CourseID, CourseName, InstructorName) VALUES (4, 'Web Development', 'Dr. Williams');
+INSERT INTO enrollments (StudentIDFK, CourseIDFK, EnrollmentDate) VALUES (4, 4, '2024-01-19');
+
+-- Insert one more student and one more course, and enroll the new student in the new course
+INSERT INTO Students2 (StudentID, FirstName, LastName, Email) VALUES (5, 'Charlie', 'Brown', 'charlie.brown@university.edu');
+INSERT INTO courses (CourseID, CourseName, InstructorName) VALUES (5, 'Data Science', 'Dr. Davis');
+INSERT INTO enrollments (StudentIDFK, CourseIDFK, EnrollmentDate) VALUES (5, 5, '2024-01-20');

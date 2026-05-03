@@ -1,0 +1,35 @@
+// Hospital Management System
+digraph HospitalERD {
+	rankdir=LR splines=ortho
+	Patient [label=<<table border="0" cellborder="1" cellspacing="0">
+      <tr><td bgcolor="lightblue"><b>PATIENT</b></td></tr>
+      <tr><td align="left">PK: Patient_ID</td></tr>
+      <tr><td align="left">Name</td></tr>
+      <tr><td align="left">DOB</td></tr>
+      <tr><td align="left">Contact_Info</td></tr>
+    </table>> shape=plain]
+	Doctor [label=<<table border="0" cellborder="1" cellspacing="0">
+      <tr><td bgcolor="lightblue"><b>DOCTOR</b></td></tr>
+      <tr><td align="left">PK: Physician_ID</td></tr>
+      <tr><td align="left">FK: Department_ID</td></tr>
+      <tr><td align="left">Name</td></tr>
+      <tr><td align="left">Specialty</td></tr>
+    </table>> shape=plain]
+	Department [label=<<table border="0" cellborder="1" cellspacing="0">
+      <tr><td bgcolor="lightblue"><b>DEPARTMENT</b></td></tr>
+      <tr><td align="left">PK: Department_ID</td></tr>
+      <tr><td align="left">Name</td></tr>
+      <tr><td align="left">Description</td></tr>
+    </table>> shape=plain]
+	Appointment [label=<<table border="0" cellborder="1" cellspacing="0">
+      <tr><td bgcolor="lightblue"><b>APPOINTMENT</b></td></tr>
+      <tr><td align="left">PK: Appointment_ID</td></tr>
+      <tr><td align="left">FK: Patient_ID</td></tr>
+      <tr><td align="left">FK: Physician_ID</td></tr>
+      <tr><td align="left">Date_Time</td></tr>
+      <tr><td align="left">Purpose</td></tr>
+    </table>> shape=plain]
+	Department -> Doctor [label=has arrowhead=crow arrowtail=tee dir=both]
+	Patient -> Appointment [label=books arrowhead=crow arrowtail=tee dir=both]
+	Doctor -> Appointment [label=attends arrowhead=crow arrowtail=tee dir=both]
+}

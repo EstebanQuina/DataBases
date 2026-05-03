@@ -1,0 +1,187 @@
+ -- Find the booths whose price levels are A 
+mysql> SELECT b.booth_number, b.booth_type, b.booth_price_level
+    -> FROM booth b
+    -> WHERE b.booth_price_level = 'A';
++--------------+------------+-------------------+
+| booth_number | booth_type | booth_price_level |
++--------------+------------+-------------------+
+|            1 | Standard   | A                 |
+|            2 | Standard   | A                 |
+|            7 | Standard   | A                 |
++--------------+------------+-------------------+
+3 rows in set (0.00 sec)
+
+mysql> -- Find the booth number whose price levels are B
+mysql> SELECT b.booth_number, b.booth_type, b.booth_price_level
+    -> FROM booth b
+    -> WHERE b.booth_price_level = 'B';
++--------------+------------+-------------------+
+| booth_number | booth_type | booth_price_level |
++--------------+------------+-------------------+
+|            3 | Small      | B                 |
+|           10 | Large      | B                 |
+|           11 | Large      | B                 |
+|           12 | Large      | B                 |
++--------------+------------+-------------------+
+4 rows in set (0.00 sec)
+
+mysql> SELECT * FROM customer LIMIT 10;
++-------------+---------------------+--------------------+--------------+
+| customer_id | customer_first_name | customer_last_name | customer_zip |
++-------------+---------------------+--------------------+--------------+
+|           1 | Jane                | Connor             | 22801        |
+|           2 | Manuel              | Diaz               | 22821        |
+|           3 | Bob                 | Wilson             | 22821        |
+|           4 | Deanna              | Washington         | 22801        |
+|           5 | Abigail             | Harris             | 22801        |
+|           6 | Betty               | Bullard            | 22801        |
+|           7 | Jessica             | Armenta            | 22821        |
+|           8 | Norma               | Valenzuela         | 22821        |
+|           9 | Janet               | Forbes             | 22801        |
+|          10 | Russell             | Edwards            | 22801        |
++-------------+---------------------+--------------------+--------------+
+10 rows in set (0.00 sec)
+
+mysql> -- Find the customers whose last name is 'Diaz'  
+mysql> SELECT c.customer_id, c.customer_first_name, c.customer_last_name
+    -> FROM customer c
+    -> WHERE c.customer_last_name = 'Diaz';
++-------------+---------------------+--------------------+
+| customer_id | customer_first_name | customer_last_name |
++-------------+---------------------+--------------------+
+|           2 | Manuel              | Diaz               |
+|          17 | Carlos              | Diaz               |
++-------------+---------------------+--------------------+
+2 rows in set (0.00 sec)
+
+mysql> -- Find the Customer and Vendor's first name and last name (UNION). 
+mysql> SELECT c.customer_first_name, c.customer_last_name
+    -> FROM customer c
+    -> UNION
+    -> SELECT v.vendor_name, NULL
+    -> FROM vendor v;
++----------------------------------+--------------------+
+| customer_first_name              | customer_last_name |
++----------------------------------+--------------------+
+| Jane                             | Connor             |
+| Manuel                           | Diaz               |
+| Bob                              | Wilson             |
+| Deanna                           | Washington         |
+| Abigail                          | Harris             |
+| Betty                            | Bullard            |
+| Jessica                          | Armenta            |
+| Norma                            | Valenzuela         |
+| Janet                            | Forbes             |
+| Russell                          | Edwards            |
+| Richard                          | Paulson            |
+| Jack                             | Wise               |
+| Jeremy                           | Gruber             |
+| William                          | Lopes              |
+| Darrell                          | Messina            |
+| Ada                              | Nieves             |
+| Carlos                           | Diaz               |
+| Jeri                             | Mitchell           |
+| Iva                              | Kienzler           |
+| Valerie                          | Loftis             |
+| Duane                            | Sipp               |
+| George                           | Rai                |
+| Alvin                            | Laurie             |
+| Dawn                             | Nale               |
+| Bonnie                           | Hassan             |
+| Tracie                           | Goehring           |
+| Annie's Pies                     | NULL               |
+| Chris's Sustainable Eggs & Meats | NULL               |
+| Fields of Corn                   | NULL               |
+| Hern?ndez Salsa & Veggies        | NULL               |
+| Marco's Peppers                  | NULL               |
+| Mediterranean Bakery             | NULL               |
+| Mother's Garlic & Greens         | NULL               |
+| Mountain View Vegetables         | NULL               |
+| Seashell Clay Shop               | NULL               |
++----------------------------------+--------------------+
+35 rows in set (0.01 sec)
+
+mysql> SELECT * FROM vendor LIMIT 10;
++-----------+----------------------------------+-------------------------------+-------------------------+------------------------+
+| vendor_id | vendor_name                      | vendor_type                   | vendor_owner_first_name | vendor_owner_last_name |
++-----------+----------------------------------+-------------------------------+-------------------------+------------------------+
+|         1 | Chris's Sustainable Eggs & Meats | Eggs & Meats                  | Chris                   | Sylvan                 |
+|         2 | Hern?ndez Salsa & Veggies        | Fresh Variety: Veggies & More | Maria                   | Hern?ndez              |
+|         3 | Mountain View Vegetables         | Fresh Variety: Veggies & More | Joseph                  | Yoder                  |
+|         4 | Fields of Corn                   | Fresh Focused                 | Samuel                  | Smith                  |
+|         5 | Seashell Clay Shop               | Arts & Jewelry                | Karen                   | Soula                  |
+|         6 | Mother's Garlic & Greens         | Fresh Variety: Veggies & More | Vera                    | Gordon                 |
+|         7 | Marco's Peppers                  | Fresh Focused                 | Marco                   | Bokashi                |
+|         8 | Annie's Pies                     | Prepared Foods                | Annie                   | Aquinas                |
+|         9 | Mediterranean Bakery             | Prepared Foods                | Kani                    | Hardi                  |
++-----------+----------------------------------+-------------------------------+-------------------------+------------------------+
+9 rows in set (0.00 sec)
+
+mysql> -- Find Customers that are also Vendors  (INTERSECTION)
+mysql> SELECT c.customer_first_name, c.customer_last_name
+    -> FROM customer c
+    -> JOIN vendor v ON c.customer_first_name = v.vendor_name;
+Empty set (0.00 sec)
+
+mysql> -- Find Vendors that are also Customers (INTERSECTION)
+mysql> SELECT v.vendor_name, NULL
+    -> FROM vendor v
+    -> JOIN customer c ON v.vendor_name = c.customer_first_name;
+Empty set (0.00 sec)
+
+mysql> -- Find the Customers that are not Vendors (DIFFERENCE)
+mysql> SELECT c.customer_first_name, c.customer_last_name
+    -> FROM customer c
+    -> LEFT JOIN vendor v ON c.customer_first_name = v.vendor_name
+    -> WHERE v.vendor_name IS NULL;
++---------------------+--------------------+
+| customer_first_name | customer_last_name |
++---------------------+--------------------+
+| Jane                | Connor             |
+| Manuel              | Diaz               |
+| Bob                 | Wilson             |
+| Deanna              | Washington         |
+| Abigail             | Harris             |
+| Betty               | Bullard            |
+| Jessica             | Armenta            |
+| Norma               | Valenzuela         |
+| Janet               | Forbes             |
+| Russell             | Edwards            |
+| Richard             | Paulson            |
+| Jack                | Wise               |
+| Jeremy              | Gruber             |
+| William             | Lopes              |
+| Darrell             | Messina            |
+| Ada                 | Nieves             |
+| Carlos              | Diaz               |
+| Jeri                | Mitchell           |
+| Iva                 | Kienzler           |
+| Valerie             | Loftis             |
+| Duane               | Sipp               |
+| George              | Rai                |
+| Alvin               | Laurie             |
+| Dawn                | Nale               |
+| Bonnie              | Hassan             |
+| Tracie              | Goehring           |
++---------------------+--------------------+
+26 rows in set (0.01 sec)
+
+mysql> -- Find the Vendors that are not Customers  (DIFFERENCE)
+mysql> SELECT v.vendor_name, NULL
+    -> FROM vendor v
+    -> LEFT JOIN customer c ON v.vendor_name = c.customer_first_name
+    -> WHERE c.customer_first_name IS NULL;
++----------------------------------+------+
+| vendor_name                      | NULL |
++----------------------------------+------+
+| Annie's Pies                     | NULL |
+| Chris's Sustainable Eggs & Meats | NULL |
+| Fields of Corn                   | NULL |
+| Hern?ndez Salsa & Veggies        | NULL |
+| Marco's Peppers                  | NULL |
+| Mediterranean Bakery             | NULL |
+| Mother's Garlic & Greens         | NULL |
+| Mountain View Vegetables         | NULL |
+| Seashell Clay Shop               | NULL |
++----------------------------------+------+
+9 rows in set (0.00 sec)
