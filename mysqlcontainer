@@ -1,1 +1,0 @@
-docker run --name=mysqlcontainer -d -p 3306:3306 -e MYSQL_ROOT_PASSWORD=1943-me -v /Users/equina/dockerMySQL/mysql-data:/var/lib/mysql mysql:8.0.33

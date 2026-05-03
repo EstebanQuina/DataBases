@@ -1,5 +1,0 @@
-insert into test_table(description) values('three');
-insert into test_table(description) values('four');
-insert into test_table(id, description) values(1, 'one');
-insert into test_table values(6, 'six');
-insert into test_table(description, id) values('five', 5);
