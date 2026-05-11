@@ -1,0 +1,6 @@
+[
+  { "id": 1, "variety": "Freedom Rose", "color": "Red", "lotId": "LOT-001", "employeeId": "EMP-104", "stems": 4200, "date": "2026-05-03", "status": "Active" },
+  { "id": 2, "variety": "Carnation Nelson", "color": "White", "lotId": "LOT-002", "employeeId": "EMP-217", "stems": 3100, "date": "2026-05-03", "status": "Active" },
+  { "id": 3, "variety": "Chrysanthemum Feeling", "color": "Yellow", "lotId": "LOT-003", "employeeId": "EMP-088", "stems": 5800, "date": "2026-05-03", "status": "Completed" },
+  { "id": 4, "variety": "Lilium Robina", "color": "Orange", "lotId": "LOT-006", "employeeId": "EMP-203", "stems": 1890, "date": "2026-05-03", "status": "Active" }
+]
