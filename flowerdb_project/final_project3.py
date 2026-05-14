@@ -1149,35 +1149,109 @@ def delete_order_line_item(Order_id, Product_id):
         return jsonify({"error": str(e)}), 400
 
 
-@app.route('/seed', methods=['GET'])
-def seed_database():
+@app.route('/seed-all', methods=['GET'])
+def seed_all():
     try:
-        # 1. Ensure tables are created
+        # 1. Initialize Tables
         db.create_all()
 
-        # 2. Prevent duplicate seeding
-        if Product.query.first():
+        # Prevent duplicate seeding
+        if Company.query.first():
             return jsonify({"message": "Database is already seeded! You are good to go."}), 200
 
-        # 3. Create the missing parent data using the EXACT model fields
-        # Using the Ger-001 you tried to insert earlier
-        product1 = Product(Product_id='Ger-001', Variety_name='Gerbera Daisy', Color='Pink') 
-        product2 = Product(Product_id='P010', Variety_name='Freedom Rose', Color='Red')
+        # ==========================================
+        # LEVEL 0: Base Tables (No Foreign Keys)
+        # ==========================================
+        
+        company = Company(RUC=1234567892, Name="Yachay Floral Corp", Phone="0999999999", Address="Quito")
+        city1 = City(City_name="Quito", Country="Ecuador")
+        city2 = City(City_name="Miami", Country="USA")
+        
+        prod1 = Product(Product_id="P-GER-01", Variety_name="Gerbera Daisy", Color="Pink")
+        prod2 = Product(Product_id="P-ROS-01", Variety_name="Freedom Rose", Color="Red")
+        
+        lot1 = Lot() # Autoincrements to 1
+        lot2 = Lot() # Autoincrements to 2
+        
+        machine1 = MachineStock(Equip_id="TRAC-001", Buy_date=date(2023, 5, 10))
+        machine2 = MachineStock(Equip_id="FUM-001", Buy_date=date(2024, 1, 15))
+        
+        agro1 = AgrochemicalProduct(Ag_Product_id="AG-001", Name="Neem Oil", Description="Organic bio-pesticide")
+        agro2 = AgrochemicalProduct(Ag_Product_id="AG-002", Name="Fungex Pro", Description="Broad-spectrum fungicide")
 
-        # Since Lot_number is autoincrement, we can explicitly set it to 1 to match your frontend test
-        lot1 = Lot(Lot_number=1) 
+        db.session.add_all([company, city1, city2, prod1, prod2, lot1, lot2, machine1, machine2, agro1, agro2])
+        db.session.commit() # Commit so we can use these IDs in the next level
 
-        # 4. Save to the database
-        db.session.add_all([product1, product2, lot1])
+        # ==========================================
+        # LEVEL 1: Rely on Base Tables
+        # ==========================================
+        
+        dept_prod = Department(Department_name="Production", RUC=company.RUC)
+        dept_sales = Department(Department_name="Sales", RUC=company.RUC)
+        
+        cust1 = Customer(Name="Global Florals", City_name="Miami", Phone="+1-555-0198", Email="buyer@globalflorals.com")
+        cust2 = Customer(Name="Eventos Quito", City_name="Quito", Phone="0987654321", Email="contacto@eventosUIO.com")
+
+        db.session.add_all([dept_prod, dept_sales, cust1, cust2])
         db.session.commit()
 
-        return jsonify({"message": "Database successfully seeded with master data!"}), 201
+        # ==========================================
+        # LEVEL 2: Rely on Level 1
+        # ==========================================
+        
+        # Adding you and Marcial to the HR module!
+        emp1 = Employee(
+            Department_name="Production", Hiring_date=date(2025, 1, 15),
+            Name="Esteban", Last_name="Quiña", Birth_date=date(2002, 5, 27),
+            Role="Data Analyst", Sex="M"
+        )
+        emp2 = Employee(
+            Department_name="Production", Hiring_date=date(2025, 1, 15),
+            Name="Marcial", Last_name="Valero", Birth_date=date(2002, 1, 1), 
+            Role="Production Manager", Sex="M"
+        )
+        
+        order1 = Order(Order_id="ORD-100", Date=date(2026, 5, 10), Customer_id=1, Dispatch_date=date(2026, 5, 15), Description="Mother's Day Export")
+
+        db.session.add_all([emp1, emp2, order1])
+        db.session.commit()
+
+        # ==========================================
+        # LEVEL 3: Production, Orders, and Fumigation
+        # ==========================================
+        
+        # Daily Production (Uses composite primary key)
+        dp1 = DailyProduction(Date=date(2026, 5, 10), Product_id=prod1.Product_id, Lot_number=lot1.Lot_number, Quantity=1500)
+        dp2 = DailyProduction(Date=date(2026, 5, 11), Product_id=prod2.Product_id, Lot_number=lot2.Lot_number, Quantity=3000)
+        
+        # Post Harvest (Checking your length constraints: 40, 45, 50, 55)
+        ph1 = DailyPostHarvest(Date=date(2026, 5, 10), Length=50.0, Employee_id=emp1.Employee_id, Product_id=prod1.Product_id, Quantity=1450)
+        
+        # Order Line Items (Checking length constraints again)
+        oli1 = OrderLineItem(Order_id=order1.Order_id, Product_id=prod1.Product_id, Required_length=50.0, Negotiated_price=1.25, Quantity=1000)
+        
+        # Fumigation Event
+        fum1 = FumigationEvent(Date=date(2026, 5, 5), Lot_number=lot1.Lot_number, Ag_Product_id=agro1.Ag_Product_id, Target_pest="Spider Mites", Dosage=2.5, Volume=100.0, Application_method="Sprayer")
+
+        db.session.add_all([dp1, dp2, ph1, oli1, fum1])
+        db.session.commit()
+
+        # ==========================================
+        # LEVEL 4: Junction Tables
+        # ==========================================
+        
+        emp_prod1 = EmployeeProduction(Employee_id=emp1.Employee_id, Product_id=dp1.Product_id, Date=dp1.Date, Lot_number=dp1.Lot_number)
+        emp_fum1 = EmployeeFumigation(Employee_id=emp2.Employee_id, Fumigation_id=fum1.Fumigation_id)
+        mach_fum1 = MachineFumigation(Equip_id=machine2.Equip_id, Fumigation_id=fum1.Fumigation_id)
+
+        db.session.add_all([emp_prod1, emp_fum1, mach_fum1])
+        db.session.commit()
+
+        return jsonify({"message": "Master seed complete! All 17 tables populated successfully."}), 201
 
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to seed: {str(e)}"}), 400
-
-
 
 
 
