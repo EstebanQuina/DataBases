@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import AddCustomerModal from './AddCustomerModal';
+import AddOrderModal from './AddOrderModal';
 
 const OrdersDashboard = () => {
   const [customers, setCustomers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // NEW: State to control modal visibility
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   const API_BASE_URL = 'http://127.0.0.1:5000';
 
   useEffect(() => {
-    // Fetch both endpoints at the exact same time
     Promise.all([
       fetch(`${API_BASE_URL}/customers`).then(res => res.json()),
       fetch(`${API_BASE_URL}/orders`).then(res => res.json())
@@ -23,6 +28,42 @@ const OrdersDashboard = () => {
       setIsLoading(false);
     });
   }, []);
+
+  // NEW: Save Customer POST Request
+  const handleSaveCustomer = (newCustomer) => {
+    fetch(`${API_BASE_URL}/customers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCustomer)
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to save customer');
+      return res.json();
+    })
+    .then(saved => {
+      setCustomers([...customers, saved]);
+      setIsCustomerModalOpen(false);
+    })
+    .catch(err => alert("Error saving customer. Make sure the City_name exists in the database!"));
+  };
+
+  // NEW: Save Order POST Request
+  const handleSaveOrder = (newOrder) => {
+    fetch(`${API_BASE_URL}/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newOrder)
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to save order');
+      return res.json();
+    })
+    .then(saved => {
+      setOrders([...orders, saved]);
+      setIsOrderModalOpen(false);
+    })
+    .catch(err => alert("Error saving order. Check your constraints."));
+  };
 
   const handleDeleteCustomer = (id) => {
     if (window.confirm("Delete this customer? This will fail if they have active orders due to strict Foreign Key constraints.")) {
@@ -47,7 +88,6 @@ const OrdersDashboard = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       
-      {/* MODULE HEADER */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Sales & Orders</h1>
         <p className="text-gray-500 text-sm">Manage client relationships and track outbound flower shipments.</p>
@@ -60,7 +100,8 @@ const OrdersDashboard = () => {
             <h2 className="text-lg font-bold text-gray-900">Client Directory</h2>
             <p className="text-xs text-gray-400">{customers.length} registered customers</p>
           </div>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+          {/* NEW: Wired up the onClick handler */}
+          <button onClick={() => setIsCustomerModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
             + Add Customer
           </button>
         </div>
@@ -102,7 +143,8 @@ const OrdersDashboard = () => {
             <h2 className="text-lg font-bold text-gray-900">Active Orders</h2>
             <p className="text-xs text-gray-400">{orders.length} orders pending dispatch</p>
           </div>
-          <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+          {/* NEW: Wired up the onClick handler */}
+          <button onClick={() => setIsOrderModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
             + Create Order
           </button>
         </div>
@@ -139,6 +181,10 @@ const OrdersDashboard = () => {
           </table>
         </div>
       </div>
+
+      {/* NEW: Render the modals at the bottom of the component */}
+      <AddCustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} onSave={handleSaveCustomer} />
+      <AddOrderModal isOpen={isOrderModalOpen} onClose={() => setIsOrderModalOpen(false)} onSave={handleSaveOrder} customers={customers} />
 
     </div>
   );

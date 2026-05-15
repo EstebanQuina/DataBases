@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import ProductionTable from './components/ProductionTable';
 import EmployeeTable from './components/EmployeeTable';
-import PostHarvestTable from './components/PostHarvestTable';
+import PostHarvestDashboard from './components/PostHarvestDashboard';
 import OrdersDashboard from './components/OrdersDashboard';
 import ProductTable from './components/ProductTable';
 import LotTable from './components/LotTable';
+import HRDashboard from './components/HRDashboard';
 
 function App() {
   // This state controls which table is visible! Defaults to 'production'.
@@ -33,19 +34,14 @@ function App() {
           </div>
         );
       case 'postharvest':
-        return (
-          <div className="animate-in fade-in duration-300">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Quality Control</h1>
-              <p className="text-gray-500 text-sm">Log stem lengths and processing data.</p>
-            </div>
-            <PostHarvestTable />
-          </div>
-        );
+        return <PostHarvestDashboard />;
 
       // Put this right above default: return <ProductionTable />;
       case 'sales':
         return <OrdersDashboard />;
+
+      case 'hr':
+        return <HRDashboard />;
       default:
         return <ProductionTable />;
     }
@@ -86,7 +82,7 @@ function App() {
 
           <button onClick={() => setActiveModule('postharvest')} className={getButtonClass('postharvest')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-            Quality Control
+            Post-Harvest
           </button>
           <button onClick={() => setActiveModule('sales')} className={getButtonClass('sales')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>

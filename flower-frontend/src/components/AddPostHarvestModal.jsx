@@ -1,13 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const AddPostHarvestModal = ({ isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     Date: new Date().toISOString().split('T')[0],
-    Length: '50.0', // Default to a valid length
+    Length: '50.0', 
     Employee_id: '',
-    Product_id: '',
+    Product_id: '', // Starts empty to force selection
     Quantity: ''
   });
+
+  // NEW: State to hold the live list of products
+  const [products, setProducts] = useState([]);
+  const API_BASE_URL = 'http://127.0.0.1:5000';
+
+  // NEW: Fetch the products whenever the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch(`${API_BASE_URL}/products`)
+        .then(res => res.json())
+        .then(data => {
+          setProducts(data.products || []);
+        })
+        .catch(error => console.error("Error fetching varieties:", error));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -18,14 +34,12 @@ const AddPostHarvestModal = ({ isOpen, onClose, onSave }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Convert Length and Quantity to numbers before sending to Flask
     const payload = {
       ...formData,
       Length: parseFloat(formData.Length),
       Quantity: parseInt(formData.Quantity, 10)
     };
     onSave(payload);
-    // Reset form
     setFormData({ Date: new Date().toISOString().split('T')[0], Length: '50.0', Employee_id: '', Product_id: '', Quantity: '' });
   };
 
@@ -59,9 +73,23 @@ const AddPostHarvestModal = ({ isOpen, onClose, onSave }) => {
               <input required type="number" name="Employee_id" value={formData.Employee_id} onChange={handleChange} placeholder="e.g. 1" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none" />
             </div>
 
+            {/* NEW: The Product ID input is now a dynamic dropdown */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product ID</label>
-              <input required type="text" name="Product_id" value={formData.Product_id} onChange={handleChange} placeholder="e.g. P-GER-01" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Flower Variety</label>
+              <select 
+                required 
+                name="Product_id" 
+                value={formData.Product_id} 
+                onChange={handleChange} 
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none bg-white"
+              >
+                <option value="" disabled>Select a variety...</option>
+                {products.map((p, index) => (
+                  <option key={index} value={p.Product_id}>
+                    {p.Product_id} — {p.Variety_name} ({p.Color})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="col-span-2">
