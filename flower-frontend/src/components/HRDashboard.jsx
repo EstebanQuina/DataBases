@@ -6,14 +6,15 @@ const HRDashboard = () => {
   const [departments, setDepartments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // NEW: State to track which employee is being edited
+  const [editingEmployee, setEditingEmployee] = useState(null);
 
   const API_BASE_URL = 'http://127.0.0.1:5000';
 
   useEffect(() => {
-    // Fetch both Employees and Departments at the same time
     Promise.all([
       fetch(`${API_BASE_URL}/employees`).then(res => res.json()),
-      // Assuming you have a /departments route in Flask. If not, we fall back to an empty array gracefully.
       fetch(`${API_BASE_URL}/departments`).then(res => res.json()).catch(() => ({ departments: [] }))
     ])
     .then(([employeeData, departmentData]) => {
@@ -27,21 +28,45 @@ const HRDashboard = () => {
     });
   }, []);
 
-  const handleSaveEmployee = (newEmployee) => {
-    fetch(`${API_BASE_URL}/employees`, {
-      method: 'POST',
+  // NEW: Open modal with specific employee data
+  const handleEditClick = (employee) => {
+    setEditingEmployee(employee);
+    setIsModalOpen(true);
+  };
+
+  // NEW: Close and clean up
+  const handleCloseModal = () => {
+    setEditingEmployee(null);
+    setIsModalOpen(false);
+  };
+
+  // UPDATED: Now handles both Create (POST) and Update (PUT)
+  const handleSaveEmployee = (employeeData, isEditMode) => {
+    const method = isEditMode ? 'PUT' : 'POST';
+    const url = isEditMode 
+        ? `${API_BASE_URL}/employees/${employeeData.Employee_id}` 
+        : `${API_BASE_URL}/employees`;
+
+    fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newEmployee)
+      body: JSON.stringify(employeeData)
     })
     .then(response => {
-        if (!response.ok) throw new Error('Failed to save employee');
+        if (!response.ok) throw new Error(`Failed to ${isEditMode ? 'update' : 'save'} employee`);
         return response.json();
     })
     .then(savedEmployee => {
-      setEmployees([...employees, savedEmployee]); 
-      setIsModalOpen(false);
+      if (isEditMode) {
+        // Replace the old record with the new one
+        setEmployees(employees.map(emp => emp.Employee_id === savedEmployee.Employee_id ? savedEmployee : emp));
+      } else {
+        // Add the brand new employee to the list
+        setEmployees([...employees, savedEmployee]); 
+      }
+      handleCloseModal();
     })
-    .catch(error => alert("Error saving employee. Check database constraints."));
+    .catch(error => alert(`Error saving employee: ${error.message}`));
   };
 
   const handleDeleteEmployee = (idToDelete) => {
@@ -61,18 +86,17 @@ const HRDashboard = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       
-      {/* MODULE HEADER */}
       <div className="mb-6 flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Human Resources</h1>
           <p className="text-gray-500 text-sm">Manage farm staff, departments, and roles.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm">
+        {/* UPDATED: Pass null when adding a new employee */}
+        <button onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm">
           + Add Employee
         </button>
       </div>
 
-      {/* EMPLOYEE TABLE */}
       <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
           <div>
@@ -96,7 +120,6 @@ const HRDashboard = () => {
               {employees.map((emp, index) => (
                 <tr key={index} className="hover:bg-gray-50/50 transition-colors group">
                   <td className="px-6 py-4 font-mono text-gray-500">#{emp.Employee_id}</td>
-                  {/* Combine First and Last name for a cleaner UI */}
                   <td className="px-6 py-4 font-medium text-gray-900">{emp.Name} {emp.Last_name}</td>
                   <td className="px-6 py-4 text-gray-600">{emp.Role}</td>
                   <td className="px-6 py-4 text-gray-500">
@@ -105,8 +128,10 @@ const HRDashboard = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-gray-500">{emp.Hiring_date}</td>
-                  <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleDeleteEmployee(emp.Employee_id)} className="text-gray-400 hover:text-red-600 text-xs font-medium">Remove</button>
+                  <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity space-x-3">
+                      {/* NEW: Edit Button added next to Remove */}
+                      <button onClick={() => handleEditClick(emp)} className="text-gray-400 hover:text-blue-600 text-xs font-medium transition-colors">Edit</button>
+                      <button onClick={() => handleDeleteEmployee(emp.Employee_id)} className="text-gray-400 hover:text-red-600 text-xs font-medium transition-colors">Remove</button>
                   </td>
                 </tr>
               ))}
@@ -115,7 +140,13 @@ const HRDashboard = () => {
         </div>
       </div>
 
-      <AddEmployeeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveEmployee} departments={departments} />
+      <AddEmployeeModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        onSave={handleSaveEmployee} 
+        departments={departments} 
+        initialData={editingEmployee} // NEW: Pass the state here
+      />
     </div>
   );
 };

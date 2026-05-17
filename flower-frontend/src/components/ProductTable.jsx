@@ -5,6 +5,9 @@ const ProductTable = () => {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // NEW: State to track which product is currently being edited
+  const [editingProduct, setEditingProduct] = useState(null);
 
   const API_BASE_URL = 'http://127.0.0.1:5000';
 
@@ -21,21 +24,45 @@ const ProductTable = () => {
       });
   }, []);
 
-  const handleSaveProduct = (newProduct) => {
-    fetch(`${API_BASE_URL}/products`, {
-      method: 'POST',
+  // NEW: Function to open modal for editing
+  const handleEditClick = (product) => {
+    setEditingProduct(product);
+    setIsModalOpen(true);
+  };
+
+  // NEW: Function to handle closing and resetting state
+  const handleCloseModal = () => {
+    setEditingProduct(null);
+    setIsModalOpen(false);
+  };
+
+  // UPDATED: Now handles both POST (Create) and PUT (Update)
+  const handleSaveProduct = (productData, isEditMode) => {
+    const method = isEditMode ? 'PUT' : 'POST';
+    const url = isEditMode 
+        ? `${API_BASE_URL}/products/${productData.Product_id}` 
+        : `${API_BASE_URL}/products`;
+
+    fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newProduct)
+      body: JSON.stringify(productData)
     })
     .then(response => {
-        if (!response.ok) throw new Error('Failed to save product');
+        if (!response.ok) throw new Error(`Failed to ${isEditMode ? 'update' : 'save'} product`);
         return response.json();
     })
     .then(savedProduct => {
-      setProducts([...products, savedProduct]); 
-      setIsModalOpen(false);
+      if (isEditMode) {
+        // Find the old product in the list and replace it with the updated one
+        setProducts(products.map(p => p.Product_id === savedProduct.Product_id ? savedProduct : p));
+      } else {
+        // Add new product to the list
+        setProducts([...products, savedProduct]); 
+      }
+      handleCloseModal();
     })
-    .catch(error => console.error("Error saving:", error));
+    .catch(error => alert(`Error: ${error.message}`));
   };
 
   const handleDeleteProduct = (idToDelete) => {
@@ -54,13 +81,14 @@ const ProductTable = () => {
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading Varieties...</div>;
 
   return (
-    <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden mb-8">
+    <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden h-full">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
         <div>
           <h2 className="text-lg font-bold text-gray-900">Flower Varieties</h2>
           <p className="text-xs text-gray-400">Master catalog of active crops</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+        {/* Opens the modal with NO initial data (Add Mode) */}
+        <button onClick={() => { setEditingProduct(null); setIsModalOpen(true); }} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
           + Add Variety
         </button>
       </div>
@@ -81,6 +109,8 @@ const ProductTable = () => {
                 <td className="px-6 py-4 font-medium text-gray-900">{product.Variety_name}</td>
                 <td className="px-6 py-4 text-gray-600">{product.Color}</td>
                 <td className="px-6 py-4 text-right space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* NEW: Edit Button */}
+                    <button onClick={() => handleEditClick(product)} className="text-gray-400 hover:text-blue-600 transition-colors">Edit</button>
                     <button onClick={() => handleDeleteProduct(product.Product_id)} className="text-gray-400 hover:text-red-600 transition-colors">Delete</button>
                 </td>
               </tr>
@@ -88,7 +118,13 @@ const ProductTable = () => {
           </tbody>
         </table>
       </div>
-      <AddProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveProduct} />
+      
+      <AddProductModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        onSave={handleSaveProduct} 
+        initialData={editingProduct} // Passes the data if editing, or null if adding
+      />
     </div>
   );
 };

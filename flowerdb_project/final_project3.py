@@ -1149,6 +1149,343 @@ def delete_order_line_item(Order_id, Product_id):
         return jsonify({"error": str(e)}), 400
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# UPDATE FUNCTIONS b
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+# UPDATE Company
+""" curl -v -X PUT http://127.0.0.1:5000/companies/1234567890 \
+-H "Content-Type: application/json" \
+-d '{"Name":"Updated Flower Company","Phone":"0991111111","Address":"Updated address"}' """
+@app.route('/companies/<int:RUC>', methods=['PUT'])
+def update_company(RUC):
+    company = Company.query.get(RUC)
+
+    if not company:
+        return jsonify({"error": "Company not found"}), 404
+
+    data = request.get_json()
+
+    company.Name = data.get("Name", company.Name)
+    company.Phone = data.get("Phone", company.Phone)
+    company.Address = data.get("Address", company.Address)
+
+    try:
+        db.session.commit()
+        return jsonify(CompanySchema().dump(company)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# UPDATE Department
+""" curl -v -X PUT http://127.0.0.1:5000/departments/Production \
+-H "Content-Type: application/json" \
+-d '{"RUC":1234567890}' """
+@app.route('/departments/<string:Department_name>', methods=['PUT'])
+def update_department(Department_name):
+    department = Department.query.get(Department_name)
+
+    if not department:
+        return jsonify({"error": "Department not found"}), 404
+
+    data = request.get_json()
+
+    department.RUC = data.get("RUC", department.RUC)
+
+    try:
+        db.session.commit()
+        return jsonify(DepartmentSchema().dump(department)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# UPDATE Employee
+""" curl -v -X PUT http://127.0.0.1:5000/employees/1 \
+-H "Content-Type: application/json" \
+-d '{"Name":"Juan Updated","Last_name":"Perez Updated","Role":"Supervisor","Sex":"M"}' """
+@app.route('/employees/<int:Employee_id>', methods=['PUT'])
+def update_employee(Employee_id):
+    employee = Employee.query.get(Employee_id)
+
+    if not employee:
+        return jsonify({"error": "Employee not found"}), 404
+
+    data = request.get_json()
+
+    employee.Department_name = data.get("Department_name", employee.Department_name)
+    employee.Hiring_date = date.fromisoformat(data["Hiring_date"]) if "Hiring_date" in data else employee.Hiring_date
+    employee.Name = data.get("Name", employee.Name)
+    employee.Last_name = data.get("Last_name", employee.Last_name)
+    employee.Birth_date = date.fromisoformat(data["Birth_date"]) if "Birth_date" in data else employee.Birth_date
+    employee.Role = data.get("Role", employee.Role)
+    employee.Sex = data.get("Sex", employee.Sex)
+
+    try:
+        db.session.commit()
+        return jsonify(EmployeeSchema().dump(employee)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# UPDATE MachineStock
+""" curl -v -X PUT http://127.0.0.1:5000/machine-stock/M001 \
+-H "Content-Type: application/json" \
+-d '{"Buy_date":"2024-01-15"}' """
+@app.route('/machine-stock/<string:Equip_id>', methods=['PUT'])
+def update_machine_stock(Equip_id):
+    machine = MachineStock.query.get(Equip_id)
+
+    if not machine:
+        return jsonify({"error": "Machine not found"}), 404
+
+    data = request.get_json()
+
+    machine.Buy_date = date.fromisoformat(data["Buy_date"]) if "Buy_date" in data else machine.Buy_date
+
+    try:
+        db.session.commit()
+        return jsonify(MachineStockSchema().dump(machine)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# UPDATE Product
+""" curl -v -X PUT http://127.0.0.1:5000/products/P001 \
+-H "Content-Type: application/json" \
+-d '{"Variety_name":"Premium Rose","Color":"Dark Red"}' """
+@app.route('/products/<string:Product_id>', methods=['PUT'])
+def update_product(Product_id):
+    product = Product.query.get(Product_id)
+
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+
+    data = request.get_json()
+
+    product.Variety_name = data.get("Variety_name", product.Variety_name)
+    product.Color = data.get("Color", product.Color)
+
+    try:
+        db.session.commit()
+        return jsonify(ProductSchema().dump(product)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+# UPDATE DailyProduction
+""" curl -v -X PUT http://127.0.0.1:5000/daily-production/2025-05-01/P001/1 \
+-H "Content-Type: application/json" \
+-d '{"Quantity":250}' """
+@app.route('/daily-production/<string:Date>/<string:Product_id>/<int:Lot_number>', methods=['PUT'])
+def update_daily_production(Date, Product_id, Lot_number):
+    record = DailyProduction.query.get((date.fromisoformat(Date), Product_id, Lot_number))
+
+    if not record:
+        return jsonify({"error": "Daily production not found"}), 404
+
+    data = request.get_json()
+
+    record.Quantity = data.get("Quantity", record.Quantity)
+
+    try:
+        db.session.commit()
+        return jsonify(DailyProductionSchema().dump(record)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# UPDATE FumigationEvent
+""" curl -v -X PUT http://127.0.0.1:5000/fumigation-events/1 \
+-H "Content-Type: application/json" \
+-d '{"Target_pest":"Whitefly","Dosage":3.0,"Volume":12.5,"Application_method":"Manual spray"}'
+"""
+@app.route('/fumigation-events/<int:Fumigation_id>', methods=['PUT'])
+def update_fumigation_event(Fumigation_id):
+    fumigation = FumigationEvent.query.get(Fumigation_id)
+
+    if not fumigation:
+        return jsonify({"error": "Fumigation event not found"}), 404
+
+    data = request.get_json()
+
+    fumigation.Date = date.fromisoformat(data["Date"]) if "Date" in data else fumigation.Date
+    fumigation.Lot_number = data.get("Lot_number", fumigation.Lot_number)
+    fumigation.Ag_Product_id = data.get("Ag_Product_id", fumigation.Ag_Product_id)
+    fumigation.Target_pest = data.get("Target_pest", fumigation.Target_pest)
+    fumigation.Dosage = data.get("Dosage", fumigation.Dosage)
+    fumigation.Volume = data.get("Volume", fumigation.Volume)
+    fumigation.Application_method = data.get("Application_method", fumigation.Application_method)
+
+    try:
+        db.session.commit()
+        return jsonify(FumigationEventSchema().dump(fumigation)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# UPDATE AgrochemicalProduct
+""" curl -v -X PUT http://127.0.0.1:5000/agrochemical-products/AG001 \
+-H "Content-Type: application/json" \
+-d '{"Name":"Updated Pesticide","Description":"Updated description"}'
+"""
+@app.route('/agrochemical-products/<string:Ag_Product_id>', methods=['PUT'])
+def update_agrochemical_product(Ag_Product_id):
+    product = AgrochemicalProduct.query.get(Ag_Product_id)
+
+    if not product:
+        return jsonify({"error": "Agrochemical product not found"}), 404
+
+    data = request.get_json()
+
+    product.Name = data.get("Name", product.Name)
+    product.Description = data.get("Description", product.Description)
+
+    try:
+        db.session.commit()
+        return jsonify(AgrochemicalProductSchema().dump(product)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+    
+
+# UPDATE DailyPostHarvest
+""" curl -v -X PUT http://127.0.0.1:5000/daily-post-harvest/2025-05-03/50.0/1/P001 \
+-H "Content-Type: application/json" \
+-d '{"Quantity":120}'
+"""
+@app.route('/daily-post-harvest/<string:Date>/<float:Length>/<int:Employee_id>/<string:Product_id>', methods=['PUT'])
+def update_daily_post_harvest(Date, Length, Employee_id, Product_id):
+    record = DailyPostHarvest.query.get((date.fromisoformat(Date), Length, Employee_id, Product_id))
+
+    if not record:
+        return jsonify({"error": "Daily post harvest not found"}), 404
+
+    data = request.get_json()
+
+    record.Quantity = data.get("Quantity", record.Quantity)
+
+    try:
+        db.session.commit()
+        return jsonify(DailyPostHarvestSchema().dump(record)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# UPDATE City
+""" curl -v -X PUT http://127.0.0.1:5000/cities/Quito \
+-H "Content-Type: application/json" \
+-d '{"Country":"Ecuador Updated"}'
+"""
+@app.route('/cities/<string:City_name>', methods=['PUT'])
+def update_city(City_name):
+    city = City.query.get(City_name)
+
+    if not city:
+        return jsonify({"error": "City not found"}), 404
+
+    data = request.get_json()
+
+    city.Country = data.get("Country", city.Country)
+
+    try:
+        db.session.commit()
+        return jsonify(CitySchema().dump(city)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# UPDATE Customer
+""" curl -v -X PUT http://127.0.0.1:5000/customers/1 \
+-H "Content-Type: application/json" \
+-d '{"Name":"Updated Customer","Phone":"0992222222","Email":"updated_customer@email.com"}'
+"""
+@app.route('/customers/<int:Customer_id>', methods=['PUT'])
+def update_customer(Customer_id):
+    customer = Customer.query.get(Customer_id)
+
+    if not customer:
+        return jsonify({"error": "Customer not found"}), 404
+
+    data = request.get_json()
+
+    customer.Name = data.get("Name", customer.Name)
+    customer.City_name = data.get("City_name", customer.City_name)
+    customer.Phone = data.get("Phone", customer.Phone)
+    customer.Email = data.get("Email", customer.Email)
+
+    try:
+        db.session.commit()
+        return jsonify(CustomerSchema().dump(customer)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+    
+
+# UPDATE Order
+""" curl -v -X PUT http://127.0.0.1:5000/orders/ORD001 \
+-H "Content-Type: application/json" \
+-d '{"Dispatch_date":"2025-05-10","Description":"Updated flower order"}'
+"""
+@app.route('/orders/<string:Order_id>', methods=['PUT'])
+def update_order(Order_id):
+    order = Order.query.get(Order_id)
+
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+
+    data = request.get_json()
+
+    order.Date = date.fromisoformat(data["Date"]) if "Date" in data else order.Date
+    order.Customer_id = data.get("Customer_id", order.Customer_id)
+    order.Dispatch_date = date.fromisoformat(data["Dispatch_date"]) if "Dispatch_date" in data else order.Dispatch_date
+    order.Description = data.get("Description", order.Description)
+
+    try:
+        db.session.commit()
+        return jsonify(OrderSchema().dump(order)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# UPDATE OrderLineItem
+""" curl -v -X PUT http://127.0.0.1:5000/order-line-items/ORD001/P001 \
+-H "Content-Type: application/json" \
+-d '{"Required_length":55,"Negotiated_price":2.25,"Quantity":300}'
+"""
+@app.route('/order-line-items/<string:Order_id>/<string:Product_id>', methods=['PUT'])
+def update_order_line_item(Order_id, Product_id):
+    item = OrderLineItem.query.get((Order_id, Product_id))
+
+    if not item:
+        return jsonify({"error": "Order line item not found"}), 404
+
+    data = request.get_json()
+
+    item.Required_length = data.get("Required_length", item.Required_length)
+    item.Negotiated_price = data.get("Negotiated_price", item.Negotiated_price)
+    item.Quantity = data.get("Quantity", item.Quantity)
+
+    try:
+        db.session.commit()
+        return jsonify(OrderLineItemSchema().dump(item)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+
+
+
 @app.route('/seed-all', methods=['GET'])
 def seed_all():
     try:

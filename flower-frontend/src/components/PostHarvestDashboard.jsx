@@ -5,6 +5,9 @@ const PostHarvestDashboard = () => {
   const [records, setRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // NEW: Track the record being edited
+  const [editingRecord, setEditingRecord] = useState(null);
 
   const API_BASE_URL = 'http://127.0.0.1:5000';
 
@@ -21,8 +24,6 @@ const PostHarvestDashboard = () => {
       });
   }, []);
 
-  // AUTOMATIC INVENTORY CALCULATOR
-  // This groups all individual logs into total available stock by Product and Length
   const inventoryStock = useMemo(() => {
     const stockMap = records.reduce((acc, record) => {
       const key = `${record.Product_id}-${record.Length}`;
@@ -37,26 +38,53 @@ const PostHarvestDashboard = () => {
       return acc;
     }, {});
 
-    // Convert the map back to an array and sort it nicely
     return Object.values(stockMap).sort((a, b) => {
       if (a.Product_id === b.Product_id) return b.Length - a.Length;
       return a.Product_id.localeCompare(b.Product_id);
     });
   }, [records]);
 
-  const handleSaveRecord = (newRecord) => {
-    fetch(`${API_BASE_URL}/daily-post-harvest`, {
-      method: 'POST',
+  // NEW: Handle Edit modal triggers
+  const handleEditClick = (record) => {
+    setEditingRecord(record);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setEditingRecord(null);
+    setIsModalOpen(false);
+  };
+
+  // UPDATED: Handle both POST and PUT (with the 4-part URL)
+  const handleSaveRecord = (recordData, isEditMode) => {
+    const method = isEditMode ? 'PUT' : 'POST';
+    
+    // The PUT request requires all 4 primary keys in the URL to find the exact row
+    const url = isEditMode 
+      ? `${API_BASE_URL}/daily-post-harvest/${recordData.Date}/${recordData.Length}/${recordData.Employee_id}/${recordData.Product_id}`
+      : `${API_BASE_URL}/daily-post-harvest`;
+
+    fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newRecord)
+      body: JSON.stringify(recordData)
     })
     .then(res => {
         if (!res.ok) throw new Error('Failed to save record');
         return res.json();
     })
     .then(savedRecord => {
-      setRecords([...records, savedRecord]); 
-      setIsModalOpen(false);
+      if (isEditMode) {
+        // Find the exact matching record using all 4 keys, and replace it
+        setRecords(records.map(r => 
+          (r.Date === savedRecord.Date && r.Length === savedRecord.Length && r.Employee_id === savedRecord.Employee_id && r.Product_id === savedRecord.Product_id)
+            ? savedRecord 
+            : r
+        ));
+      } else {
+        setRecords([...records, savedRecord]); 
+      }
+      handleCloseModal();
     })
     .catch(error => alert("Error saving. Make sure the Employee and Product IDs exist!"));
   };
@@ -82,18 +110,18 @@ const PostHarvestDashboard = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       
-      {/* MODULE HEADER */}
       <div className="mb-6 flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Post-Harvest Processing</h1>
           <p className="text-gray-500 text-sm">Manage flower processing, grading, and finished goods inventory.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-[#d4a373] hover:bg-[#ccd5ae] text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm">
+        {/* UPDATED: Pass null when adding new */}
+        <button onClick={() => { setEditingRecord(null); setIsModalOpen(true); }} className="bg-[#d4a373] hover:bg-[#ccd5ae] text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm">
           + Process New Batch
         </button>
       </div>
 
-      {/* TABLE 1: CURRENT INVENTORY STOCK (The Aggregated View) */}
+      {/* TABLE 1: CURRENT INVENTORY STOCK (Unchanged) */}
       <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 bg-gray-50/50">
           <h2 className="text-lg font-bold text-gray-900">Finished Goods Inventory</h2>
@@ -130,7 +158,7 @@ const PostHarvestDashboard = () => {
         </div>
       </div>
 
-      {/* TABLE 2: DAILY PROCESSING LOG (The Raw Data) */}
+      {/* TABLE 2: DAILY PROCESSING LOG */}
       <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900">Daily Processing Log</h2>
@@ -156,8 +184,10 @@ const PostHarvestDashboard = () => {
                   <td className="px-6 py-4 font-mono text-gray-600">{record.Product_id}</td>
                   <td className="px-6 py-4 text-gray-600">{record.Length} cm</td>
                   <td className="px-6 py-4 text-gray-900 font-medium">{record.Quantity}</td>
-                  <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleDeleteRecord(record)} className="text-gray-400 hover:text-red-600 text-xs font-medium">Delete</button>
+                  <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity space-x-3">
+                      {/* NEW: Edit button */}
+                      <button onClick={() => handleEditClick(record)} className="text-gray-400 hover:text-[#d4a373] text-xs font-medium transition-colors">Edit</button>
+                      <button onClick={() => handleDeleteRecord(record)} className="text-gray-400 hover:text-red-600 text-xs font-medium transition-colors">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -166,7 +196,13 @@ const PostHarvestDashboard = () => {
         </div>
       </div>
 
-      <AddPostHarvestModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveRecord} />
+      {/* UPDATED: Pass the initial data into the modal */}
+      <AddPostHarvestModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        onSave={handleSaveRecord} 
+        initialData={editingRecord}
+      />
     </div>
   );
 };

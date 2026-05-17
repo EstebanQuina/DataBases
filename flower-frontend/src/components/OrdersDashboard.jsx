@@ -7,9 +7,11 @@ const OrdersDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // NEW: State to control modal visibility
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  
+  // NEW: State for the customer currently being edited
+  const [editingCustomer, setEditingCustomer] = useState(null);
 
   const API_BASE_URL = 'http://127.0.0.1:5000';
 
@@ -29,25 +31,45 @@ const OrdersDashboard = () => {
     });
   }, []);
 
-  // NEW: Save Customer POST Request
-  const handleSaveCustomer = (newCustomer) => {
-    fetch(`${API_BASE_URL}/customers`, {
-      method: 'POST',
+  // NEW: Handlers for opening and closing the edit modal
+  const handleEditCustomerClick = (customer) => {
+    setEditingCustomer(customer);
+    setIsCustomerModalOpen(true);
+  };
+
+  const handleCloseCustomerModal = () => {
+    setEditingCustomer(null);
+    setIsCustomerModalOpen(false);
+  };
+
+  // UPDATED: Now handles both POST (Add) and PUT (Update) for Customers
+  const handleSaveCustomer = (customerData, isEditMode) => {
+    const method = isEditMode ? 'PUT' : 'POST';
+    const url = isEditMode 
+        ? `${API_BASE_URL}/customers/${customerData.Customer_id}` 
+        : `${API_BASE_URL}/customers`;
+
+    fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newCustomer)
+      body: JSON.stringify(customerData)
     })
     .then(res => {
       if (!res.ok) throw new Error('Failed to save customer');
       return res.json();
     })
     .then(saved => {
-      setCustomers([...customers, saved]);
-      setIsCustomerModalOpen(false);
+      if (isEditMode) {
+        setCustomers(customers.map(c => c.Customer_id === saved.Customer_id ? saved : c));
+      } else {
+        setCustomers([...customers, saved]);
+      }
+      handleCloseCustomerModal();
     })
-    .catch(err => alert("Error saving customer. Make sure the City_name exists in the database!"));
+    .catch(err => alert("Error saving customer. Make sure the City_name exists in the database and the Email is unique!"));
   };
 
-  // NEW: Save Order POST Request
+  // Order Save Logic remains strictly POST for now
   const handleSaveOrder = (newOrder) => {
     fetch(`${API_BASE_URL}/orders`, {
       method: 'POST',
@@ -100,8 +122,8 @@ const OrdersDashboard = () => {
             <h2 className="text-lg font-bold text-gray-900">Client Directory</h2>
             <p className="text-xs text-gray-400">{customers.length} registered customers</p>
           </div>
-          {/* NEW: Wired up the onClick handler */}
-          <button onClick={() => setIsCustomerModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+          {/* UPDATED: Clear the editing state before opening to Add */}
+          <button onClick={() => { setEditingCustomer(null); setIsCustomerModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
             + Add Customer
           </button>
         </div>
@@ -126,8 +148,10 @@ const OrdersDashboard = () => {
                     <div>{c.Email}</div>
                     <div className="text-xs">{c.Phone}</div>
                   </td>
-                  <td className="px-6 py-4 text-right space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleDeleteCustomer(c.Customer_id)} className="text-gray-400 hover:text-red-600">Delete</button>
+                  <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity space-x-3">
+                    {/* NEW: Edit button added to the table row */}
+                    <button onClick={() => handleEditCustomerClick(c)} className="text-gray-400 hover:text-blue-600 text-xs font-medium transition-colors">Edit</button>
+                    <button onClick={() => handleDeleteCustomer(c.Customer_id)} className="text-gray-400 hover:text-red-600 text-xs font-medium transition-colors">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -136,14 +160,13 @@ const OrdersDashboard = () => {
         </div>
       </div>
 
-      {/* TABLE 2: ORDERS */}
+      {/* TABLE 2: ORDERS (Remains unchanged visually) */}
       <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Active Orders</h2>
             <p className="text-xs text-gray-400">{orders.length} orders pending dispatch</p>
           </div>
-          {/* NEW: Wired up the onClick handler */}
           <button onClick={() => setIsOrderModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
             + Create Order
           </button>
@@ -182,9 +205,20 @@ const OrdersDashboard = () => {
         </div>
       </div>
 
-      {/* NEW: Render the modals at the bottom of the component */}
-      <AddCustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} onSave={handleSaveCustomer} />
-      <AddOrderModal isOpen={isOrderModalOpen} onClose={() => setIsOrderModalOpen(false)} onSave={handleSaveOrder} customers={customers} />
+      {/* UPDATED: Pass initialData down to the Customer modal */}
+      <AddCustomerModal 
+        isOpen={isCustomerModalOpen} 
+        onClose={handleCloseCustomerModal} 
+        onSave={handleSaveCustomer} 
+        initialData={editingCustomer}
+      />
+      
+      <AddOrderModal 
+        isOpen={isOrderModalOpen} 
+        onClose={() => setIsOrderModalOpen(false)} 
+        onSave={handleSaveOrder} 
+        customers={customers} 
+      />
 
     </div>
   );
