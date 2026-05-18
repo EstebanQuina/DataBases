@@ -1,4 +1,4 @@
-# Yachay Floral ERP - Database System
+# Database System for a Flower Production Company
 
 A full-stack Enterprise Resource Planning (ERP) database system tailored for a commercial flower production enterprise. This project digitizes and integrates complex agricultural workflows, including master data management, greenhouse harvesting, post-harvest quality control, human resources, and international sales.
 
