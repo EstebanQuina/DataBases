@@ -1,26 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import AddCustomerModal from './AddCustomerModal';
 import AddOrderModal from './AddOrderModal';
+import AddCityModal from './AddCityModal';
 
 const OrdersDashboard = () => {
+  const [cities, setCities] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  const [isCityModalOpen, setIsCityModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   
-  // NEW: State for the customer currently being edited
+  const [editingCity, setEditingCity] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
 
   const API_BASE_URL = 'http://127.0.0.1:5000';
 
   useEffect(() => {
+    // Fetch Cities alongside Customers and Orders
     Promise.all([
+      fetch(`${API_BASE_URL}/cities`).then(res => res.json()),
       fetch(`${API_BASE_URL}/customers`).then(res => res.json()),
       fetch(`${API_BASE_URL}/orders`).then(res => res.json())
     ])
-    .then(([customerData, orderData]) => {
+    .then(([cityData, customerData, orderData]) => {
+      setCities(cityData.cities || []);
       setCustomers(customerData.customers || []);
       setOrders(orderData.orders || []);
       setIsLoading(false);
@@ -31,18 +37,54 @@ const OrdersDashboard = () => {
     });
   }, []);
 
-  // NEW: Handlers for opening and closing the edit modal
+  // --- CITY HANDLERS ---
+  const handleEditCityClick = (city) => {
+    setEditingCity(city);
+    setIsCityModalOpen(true);
+  };
+
+  const handleSaveCity = (cityData, isEditMode) => {
+    const method = isEditMode ? 'PUT' : 'POST';
+    const url = isEditMode 
+        ? `${API_BASE_URL}/cities/${cityData.City_name}` 
+        : `${API_BASE_URL}/cities`;
+
+    fetch(url, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cityData)
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to save city');
+      return res.json();
+    })
+    .then(saved => {
+      if (isEditMode) {
+        setCities(cities.map(c => c.City_name === saved.City_name ? saved : c));
+      } else {
+        setCities([...cities, saved]);
+      }
+      setEditingCity(null);
+      setIsCityModalOpen(false);
+    })
+    .catch(err => alert("Error saving city. Check database constraints."));
+  };
+
+  const handleDeleteCity = (id) => {
+    if (window.confirm("Delete this city? This will fail if there are customers registered to it.")) {
+      fetch(`${API_BASE_URL}/cities/${id}`, { method: 'DELETE' })
+        .then(res => {
+          if (res.ok) setCities(cities.filter(c => c.City_name !== id));
+        });
+    }
+  };
+
+  // --- CUSTOMER HANDLERS ---
   const handleEditCustomerClick = (customer) => {
     setEditingCustomer(customer);
     setIsCustomerModalOpen(true);
   };
 
-  const handleCloseCustomerModal = () => {
-    setEditingCustomer(null);
-    setIsCustomerModalOpen(false);
-  };
-
-  // UPDATED: Now handles both POST (Add) and PUT (Update) for Customers
   const handleSaveCustomer = (customerData, isEditMode) => {
     const method = isEditMode ? 'PUT' : 'POST';
     const url = isEditMode 
@@ -64,12 +106,22 @@ const OrdersDashboard = () => {
       } else {
         setCustomers([...customers, saved]);
       }
-      handleCloseCustomerModal();
+      setEditingCustomer(null);
+      setIsCustomerModalOpen(false);
     })
-    .catch(err => alert("Error saving customer. Make sure the City_name exists in the database and the Email is unique!"));
+    .catch(err => alert("Error saving customer. Make sure the City exists and the Email is unique."));
   };
 
-  // Order Save Logic remains strictly POST for now
+  const handleDeleteCustomer = (id) => {
+    if (window.confirm("Delete this customer? This will fail if they have active orders.")) {
+      fetch(`${API_BASE_URL}/customers/${id}`, { method: 'DELETE' })
+        .then(res => {
+          if (res.ok) setCustomers(customers.filter(c => c.Customer_id !== id));
+        });
+    }
+  };
+
+  // --- ORDER HANDLERS ---
   const handleSaveOrder = (newOrder) => {
     fetch(`${API_BASE_URL}/orders`, {
       method: 'POST',
@@ -85,15 +137,6 @@ const OrdersDashboard = () => {
       setIsOrderModalOpen(false);
     })
     .catch(err => alert("Error saving order. Check your constraints."));
-  };
-
-  const handleDeleteCustomer = (id) => {
-    if (window.confirm("Delete this customer? This will fail if they have active orders due to strict Foreign Key constraints.")) {
-      fetch(`${API_BASE_URL}/customers/${id}`, { method: 'DELETE' })
-        .then(res => {
-          if (res.ok) setCustomers(customers.filter(c => c.Customer_id !== id));
-        });
-    }
   };
 
   const handleDeleteOrder = (id) => {
@@ -112,7 +155,43 @@ const OrdersDashboard = () => {
       
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Sales & Orders</h1>
-        <p className="text-gray-500 text-sm">Manage client relationships and track outbound flower shipments.</p>
+        <p className="text-gray-500 text-sm">Manage export destinations, client relationships, and outbound shipments.</p>
+      </div>
+
+      {/* TABLE 0: CITIES */}
+      <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Export Destinations</h2>
+            <p className="text-xs text-gray-400">Master list of approved delivery cities</p>
+          </div>
+          <button onClick={() => { setEditingCity(null); setIsCityModalOpen(true); }} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+            + Add City
+          </button>
+        </div>
+        <div className="overflow-x-auto max-h-[250px]">
+          <table className="w-full text-sm text-left">
+            <thead className="text-xs text-gray-400 uppercase bg-gray-50/50 border-b border-gray-100 sticky top-0">
+              <tr>
+                <th className="px-6 py-4 font-medium">City Name</th>
+                <th className="px-6 py-4 font-medium">Country</th>
+                <th className="px-6 py-4 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {cities.map((city, i) => (
+                <tr key={i} className="hover:bg-gray-50/50 transition-colors group">
+                  <td className="px-6 py-4 font-bold text-gray-900">{city.City_name}</td>
+                  <td className="px-6 py-4 text-gray-600">{city.Country}</td>
+                  <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity space-x-3">
+                    <button onClick={() => handleEditCityClick(city)} className="text-gray-400 hover:text-blue-600 text-xs font-medium transition-colors">Edit</button>
+                    <button onClick={() => handleDeleteCity(city.City_name)} className="text-gray-400 hover:text-red-600 text-xs font-medium transition-colors">Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* TABLE 1: CUSTOMERS */}
@@ -122,7 +201,6 @@ const OrdersDashboard = () => {
             <h2 className="text-lg font-bold text-gray-900">Client Directory</h2>
             <p className="text-xs text-gray-400">{customers.length} registered customers</p>
           </div>
-          {/* UPDATED: Clear the editing state before opening to Add */}
           <button onClick={() => { setEditingCustomer(null); setIsCustomerModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
             + Add Customer
           </button>
@@ -143,13 +221,14 @@ const OrdersDashboard = () => {
                 <tr key={i} className="hover:bg-gray-50/50 transition-colors group">
                   <td className="px-6 py-4 font-mono text-gray-600">#{c.Customer_id}</td>
                   <td className="px-6 py-4 font-medium text-gray-900">{c.Name}</td>
-                  <td className="px-6 py-4 text-gray-600">{c.City_name}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full text-xs font-medium">{c.City_name}</span>
+                  </td>
                   <td className="px-6 py-4 text-gray-500">
                     <div>{c.Email}</div>
                     <div className="text-xs">{c.Phone}</div>
                   </td>
                   <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity space-x-3">
-                    {/* NEW: Edit button added to the table row */}
                     <button onClick={() => handleEditCustomerClick(c)} className="text-gray-400 hover:text-blue-600 text-xs font-medium transition-colors">Edit</button>
                     <button onClick={() => handleDeleteCustomer(c.Customer_id)} className="text-gray-400 hover:text-red-600 text-xs font-medium transition-colors">Delete</button>
                   </td>
@@ -160,7 +239,7 @@ const OrdersDashboard = () => {
         </div>
       </div>
 
-      {/* TABLE 2: ORDERS (Remains unchanged visually) */}
+      {/* TABLE 2: ORDERS */}
       <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
           <div>
@@ -195,8 +274,8 @@ const OrdersDashboard = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-gray-900 truncate max-w-xs">{o.Description}</td>
-                  <td className="px-6 py-4 text-right space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleDeleteOrder(o.Order_id)} className="text-gray-400 hover:text-red-600">Delete</button>
+                  <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleDeleteOrder(o.Order_id)} className="text-gray-400 hover:text-red-600 text-xs font-medium transition-colors">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -205,10 +284,16 @@ const OrdersDashboard = () => {
         </div>
       </div>
 
-      {/* UPDATED: Pass initialData down to the Customer modal */}
+      <AddCityModal 
+        isOpen={isCityModalOpen} 
+        onClose={() => { setEditingCity(null); setIsCityModalOpen(false); }} 
+        onSave={handleSaveCity} 
+        initialData={editingCity}
+      />
+      
       <AddCustomerModal 
         isOpen={isCustomerModalOpen} 
-        onClose={handleCloseCustomerModal} 
+        onClose={() => { setEditingCustomer(null); setIsCustomerModalOpen(false); }} 
         onSave={handleSaveCustomer} 
         initialData={editingCustomer}
       />
